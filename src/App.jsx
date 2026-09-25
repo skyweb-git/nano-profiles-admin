@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { adminApi, themeOptions } from "./api";
 import PhoneINInput from "./components/PhoneINInput";
 import TokenProfileView from "./TokenProfileView";
+import NfcPaymentPanel from "./components/NfcPaymentPanel";
 
 const initialEdit = {
   _id: "",
@@ -85,6 +86,10 @@ function App() {
     const m = window.location.pathname.match(/^\/p\/([^/]+)\/?$/);
     if (m) {
       return <TokenProfileView token={decodeURIComponent(m[1])} />;
+    }
+    const payMatch = window.location.pathname.match(/^\/pay\/([^/]+)\/?$/);
+    if (payMatch) {
+      return <NfcPaymentPanel tagCode={decodeURIComponent(payMatch[1])} />;
     }
   }
 
@@ -2295,6 +2300,31 @@ function App() {
 
                 <div style={{ marginTop: '12px', fontSize: '12px', color: '#6b7280', textAlign: 'center' }}>
                   Next phone tap on NFC tag <strong>{selectedPaymentTag.tagCode}</strong> will immediately ask for ₹{quickPaymentAmount || selectedPaymentTag.amount}.
+                </div>
+
+                <div style={{ marginTop: '20px', borderTop: '1px dashed #cbd5e1', paddingTop: '16px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#4338ca', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span>📱 Customer Tap Panel (Live Preview):</span>
+                    <a
+                      href={`${profileBaseUrlFromEnv()}/pay/${selectedPaymentTag.tagCode}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ fontSize: '12px', color: '#4f46e5', textDecoration: 'none', fontWeight: 600 }}
+                    >
+                      Open in New Tab ↗
+                    </a>
+                  </div>
+                  <NfcPaymentPanel
+                    isInlinePreview={true}
+                    previewData={{
+                      tagCode: selectedPaymentTag.tagCode,
+                      payeeName: selectedPaymentTag.payeeName,
+                      payeeUpiId: selectedPaymentTag.payeeUpiId,
+                      amount: quickPaymentAmount || selectedPaymentTag.amount,
+                      title: selectedPaymentTag.title,
+                      note: selectedPaymentTag.note
+                    }}
+                  />
                 </div>
               </form>
             ) : (
