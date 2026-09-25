@@ -2,28 +2,18 @@ import { useEffect, useState } from "react";
 
 const API_BASE = (import.meta.env.VITE_API_URL || (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") ? "http://localhost:5000" : "https://api.nanoprofiles.com")).replace(/\/health\/?$/, "").replace(/\/+$/, "");
 
-export function buildUpiLinks({ payeeUpiId, payeeName, amount, note, tagCode }) {
-  const cleanAmount = Number(amount || 0).toFixed(2);
-  const cleanNote = (note || `Payment for ${tagCode || "NFC"}`).slice(0, 50);
-  const txnRef = `${(tagCode || "PAY").replace(/[^A-Za-z0-9]/g, "")}-${Date.now().toString().slice(-6)}`;
+export function buildUpiLinks({ payeeUpiId, amount }) {
+  const upid = String(payeeUpiId || "").trim();
+  const cleanAmount = Number(amount || 0);
+  const baseQuery = `pa=${upid}&am=${cleanAmount}&cu=INR`;
 
-  const params = new URLSearchParams({
-    pa: payeeUpiId || "",
-    pn: payeeName || "Merchant",
-    am: cleanAmount,
-    cu: "INR",
-    tn: cleanNote,
-    tr: txnRef
-  });
-
-  const qs = params.toString();
   return {
-    upiIntentUrl: `upi://pay?${qs}`,
-    gpayUrl: `tez://upi/pay?${qs}`,
-    phonepeUrl: `phonepe://pay?${qs}`,
-    paytmUrl: `paytmmp://pay?${qs}`,
-    bhimUrl: `upi://pay?${qs}`,
-    qrPayload: `upi://pay?${qs}`
+    upiIntentUrl: `upi://pay?${baseQuery}`,
+    gpayUrl: `tez://upi/pay?${baseQuery}`,
+    phonepeUrl: `phonepe://pay?${baseQuery}`,
+    paytmUrl: `paytmmp://pay?${baseQuery}`,
+    bhimUrl: `upi://pay?${baseQuery}`,
+    qrPayload: `upi://pay?${baseQuery}`
   };
 }
 
