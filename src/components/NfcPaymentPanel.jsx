@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 
 const API_BASE = (import.meta.env.VITE_API_URL || (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") ? "http://localhost:5000" : "https://api.nanoprofiles.com")).replace(/\/health\/?$/, "").replace(/\/+$/, "");
 
-export function buildUpiLinks({ payeeUpiId, amount }) {
+export function buildUpiLinks({ payeeUpiId, payeeName, amount }) {
   const upid = String(payeeUpiId || "").trim();
   const cleanAmount = Number(amount || 0);
-  const baseQuery = `pa=${upid}&am=${cleanAmount}&cu=INR`;
+  const name = encodeURIComponent(String(payeeName || "Merchant").trim());
+  const baseQuery = `pa=${upid}&pn=${name}&am=${cleanAmount}&cu=INR`;
 
   return {
     upiIntentUrl: `upi://pay?${baseQuery}`
