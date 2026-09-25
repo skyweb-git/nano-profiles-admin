@@ -35,7 +35,7 @@ export default function NfcPaymentPanel({ tagCode, previewData, isInlinePreview 
 
     fetch(`${API_BASE}/api/pay/${encodeURIComponent(tagCode)}`)
       .then((res) => {
-        if (!res.ok) throw new Error(`Tag not found or inactive (${res.status})`);
+        if (!res.ok) throw new Error(`TAG NOT FOUND (${res.status})`);
         return res.json();
       })
       .then((json) => {
@@ -43,7 +43,7 @@ export default function NfcPaymentPanel({ tagCode, previewData, isInlinePreview 
           if (json.success && json.data) {
             setData(json.data);
           } else {
-            throw new Error(json.message || "Failed to load payment details");
+            throw new Error(json.message || "FAILED TO LOAD PAYMENT");
           }
         }
       })
@@ -70,12 +70,18 @@ export default function NfcPaymentPanel({ tagCode, previewData, isInlinePreview 
     }
   };
 
+  const amt = Number(activeData?.amount || 0);
+  const formattedAmt = amt.toLocaleString("en-IN");
+  const links = activeData?.links || (activeData ? buildUpiLinks(activeData) : {});
+
   if (loading) {
     return (
       <div style={isInlinePreview ? styles.inlineWrap : styles.pageWrap}>
         <div style={styles.card}>
-          <div style={styles.spinner} />
-          <p style={{ color: "#94a3b8", fontSize: "14px", marginTop: "12px" }}>Loading payment details...</p>
+          <div style={styles.pixelSpinner} />
+          <p style={{ color: "#ffffff", fontSize: "10px", marginTop: "12px", fontFamily: '"Press Start 2P", monospace' }}>
+            CONNECTING...
+          </p>
         </div>
       </div>
     );
@@ -85,21 +91,17 @@ export default function NfcPaymentPanel({ tagCode, previewData, isInlinePreview 
     return (
       <div style={styles.pageWrap}>
         <div style={styles.card}>
-          <div style={styles.errorIcon}>⚠️</div>
-          <h2 style={{ color: "#ffffff", margin: "8px 0 4px" }}>Payment Tag Inactive</h2>
-          <p style={{ color: "#94a3b8", fontSize: "13px" }}>{error}</p>
-          <div style={styles.tagBadge}>Tag: {tagCode}</div>
+          <div style={styles.errorIcon}>[ ! ]</div>
+          <h2 style={{ color: "#ffffff", fontSize: "12px", margin: "8px 0" }}>TAG INACTIVE</h2>
+          <p style={{ color: "#a3a3a3", fontSize: "9px" }}>{error}</p>
+          <div style={styles.tagBadge}>TAG: {tagCode}</div>
           <button style={styles.retryBtn} onClick={() => window.location.reload()}>
-            Try Again
+            TRY AGAIN
           </button>
         </div>
       </div>
     );
   }
-
-  const amt = Number(activeData?.amount || 0);
-  const formattedAmt = amt.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-  const links = activeData?.links || (activeData ? buildUpiLinks(activeData) : {});
 
   return (
     <div style={isInlinePreview ? styles.inlineWrap : styles.pageWrap}>
@@ -108,21 +110,20 @@ export default function NfcPaymentPanel({ tagCode, previewData, isInlinePreview 
         {activeData?.tagCode && (
           <div style={styles.headerRow}>
             <div style={styles.tagPill}>
-              <span style={{ fontSize: "11px" }}>📶</span>
-              <span>{activeData.tagCode}</span>
+              <span>[{activeData.tagCode}]</span>
             </div>
           </div>
         )}
 
         {/* Payee Info */}
         <div style={styles.payeeSection}>
-          <h2 style={styles.payeeName}>{activeData?.payeeName || "Merchant Name"}</h2>
+          <h2 style={styles.payeeName}>{activeData?.payeeName || "MERCHANT"}</h2>
           {activeData?.title && <p style={styles.tagTitle}>{activeData.title}</p>}
         </div>
 
-        {/* Amount Display */}
+        {/* Amount Box */}
         <div style={styles.amountBox}>
-          <span style={styles.amountBoxLabel}>Total Payable Amount</span>
+          <span style={styles.amountBoxLabel}>TOTAL PAYABLE AMOUNT</span>
           <div style={styles.amountBoxRow}>
             <span style={styles.amountRupee}>₹</span>
             <span style={styles.amountNumber}>{formattedAmt || "0"}</span>
@@ -130,14 +131,14 @@ export default function NfcPaymentPanel({ tagCode, previewData, isInlinePreview 
           {activeData?.note && <div style={styles.amountNote}>"{activeData.note}"</div>}
         </div>
 
-        {/* Primary Pay Button */}
+        {/* Primary Pay with Nano Button */}
         <button
           type="button"
           style={styles.payNowBtn}
           onClick={() => handlePay(links.upiIntentUrl)}
         >
-          <span>Pay ₹{formattedAmt} with UPI</span>
-          <span style={{ fontSize: "18px" }}>↗</span>
+          <span>PAY ₹{formattedAmt} WITH NANO</span>
+          <span style={{ fontSize: "14px", marginLeft: "6px" }}>►</span>
         </button>
       </div>
     </div>
@@ -150,28 +151,28 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    background: "linear-gradient(135deg, #090d16 0%, #0f172a 100%)",
+    background: "#000000",
     padding: "16px",
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+    fontFamily: '"Press Start 2P", monospace',
+    boxSizing: "border-box"
   },
   inlineWrap: {
     width: "100%",
     display: "flex",
     justifyContent: "center",
     padding: "12px 0",
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+    fontFamily: '"Press Start 2P", monospace',
+    boxSizing: "border-box"
   },
   card: {
     width: "100%",
     maxWidth: "380px",
-    background: "rgba(15, 23, 42, 0.95)",
-    backdropFilter: "blur(20px)",
-    WebkitBackdropFilter: "blur(20px)",
-    border: "1px solid rgba(255, 255, 255, 0.12)",
-    borderRadius: "22px",
+    background: "#000000",
+    border: "2px solid #ffffff",
+    borderRadius: "0px",
     padding: "24px 20px",
-    boxShadow: "0 20px 45px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(99, 102, 241, 0.15)",
-    color: "#f8fafc",
+    boxShadow: "6px 6px 0px #ffffff",
+    color: "#ffffff",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
@@ -179,8 +180,7 @@ const styles = {
   },
   cardInline: {
     maxWidth: "360px",
-    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.35)",
-    border: "2px solid #6366f1"
+    boxShadow: "4px 4px 0px #ffffff"
   },
   headerRow: {
     width: "100%",
@@ -190,16 +190,14 @@ const styles = {
     marginBottom: "16px"
   },
   tagPill: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "4px",
-    background: "rgba(99, 102, 241, 0.15)",
-    border: "1px solid rgba(99, 102, 241, 0.35)",
-    borderRadius: "20px",
-    padding: "4px 12px",
-    fontSize: "12px",
-    fontWeight: 700,
-    color: "#a5b4fc"
+    display: "inline-block",
+    border: "1px solid #ffffff",
+    borderRadius: "0px",
+    padding: "4px 10px",
+    fontSize: "10px",
+    color: "#ffffff",
+    letterSpacing: "1px",
+    background: "#000000"
   },
   payeeSection: {
     width: "100%",
@@ -207,103 +205,103 @@ const styles = {
     marginBottom: "18px"
   },
   payeeName: {
-    fontSize: "1.45rem",
-    fontWeight: 700,
-    margin: "0 0 2px 0",
+    fontSize: "clamp(13px, 3.5vw, 15px)",
+    lineHeight: "1.5",
+    margin: "0 0 6px 0",
     color: "#ffffff",
-    letterSpacing: "-0.2px"
+    letterSpacing: "0px"
   },
   tagTitle: {
-    fontSize: "13px",
-    color: "#94a3b8",
-    margin: "0"
+    fontSize: "9px",
+    lineHeight: "1.6",
+    color: "#a3a3a3",
+    margin: "0",
+    textTransform: "uppercase"
   },
   amountBox: {
     width: "100%",
-    background: "linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%)",
-    border: "1px solid rgba(99, 102, 241, 0.3)",
-    borderRadius: "16px",
-    padding: "18px 12px",
+    background: "#000000",
+    border: "2px solid #ffffff",
+    borderRadius: "0px",
+    padding: "16px 12px",
     textAlign: "center",
     marginBottom: "18px",
+    boxShadow: "4px 4px 0px #ffffff",
     boxSizing: "border-box"
   },
   amountBoxLabel: {
-    fontSize: "11px",
-    textTransform: "uppercase",
+    fontSize: "8px",
     letterSpacing: "1px",
-    color: "#94a3b8",
-    fontWeight: 600,
+    color: "#a3a3a3",
     display: "block",
-    marginBottom: "4px"
+    marginBottom: "8px"
   },
   amountBoxRow: {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    gap: "4px"
+    gap: "6px"
   },
   amountRupee: {
-    fontSize: "1.75rem",
-    fontWeight: 700,
-    color: "#818cf8"
+    fontSize: "clamp(18px, 4.5vw, 22px)",
+    color: "#ffffff"
   },
   amountNumber: {
-    fontSize: "2.5rem",
-    fontWeight: 800,
+    fontSize: "clamp(20px, 5.5vw, 26px)",
     color: "#ffffff",
-    letterSpacing: "-1px"
+    letterSpacing: "0px"
   },
   amountNote: {
-    fontSize: "12px",
-    color: "#94a3b8",
-    marginTop: "6px",
-    fontStyle: "italic"
+    fontSize: "8px",
+    lineHeight: "1.5",
+    color: "#a3a3a3",
+    marginTop: "8px",
+    textTransform: "uppercase"
   },
   payNowBtn: {
     width: "100%",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    gap: "8px",
-    background: "linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)",
-    color: "#ffffff",
-    border: "none",
-    borderRadius: "14px",
-    padding: "15px 18px",
-    fontSize: "16px",
-    fontWeight: 700,
+    background: "#ffffff",
+    color: "#000000",
+    border: "2px solid #ffffff",
+    borderRadius: "0px",
+    padding: "14px 16px",
+    fontSize: "clamp(10px, 2.8vw, 12px)",
+    fontFamily: '"Press Start 2P", monospace',
     cursor: "pointer",
-    boxShadow: "0 6px 20px rgba(99, 102, 241, 0.4)",
-    boxSizing: "border-box"
+    boxShadow: "4px 4px 0px #ffffff",
+    transition: "transform 0.1s, box-shadow 0.1s",
+    boxSizing: "border-box",
+    lineHeight: "1.4"
   },
-  spinner: {
-    width: "36px",
-    height: "36px",
-    borderRadius: "50%",
-    border: "3px solid rgba(99, 102, 241, 0.2)",
-    borderTopColor: "#6366f1",
-    animation: "spin 1s linear infinite"
+  pixelSpinner: {
+    width: "28px",
+    height: "28px",
+    border: "3px solid #ffffff",
+    borderTopColor: "#000000",
+    animation: "spin 0.8s linear infinite"
   },
   errorIcon: {
-    fontSize: "36px"
+    fontSize: "18px",
+    color: "#ffffff",
+    marginBottom: "6px"
   },
   tagBadge: {
-    background: "rgba(239, 68, 68, 0.15)",
-    border: "1px solid rgba(239, 68, 68, 0.3)",
-    borderRadius: "6px",
-    padding: "3px 8px",
-    fontSize: "12px",
-    color: "#f87171",
+    border: "1px solid #ffffff",
+    padding: "4px 8px",
+    fontSize: "9px",
+    color: "#ffffff",
     margin: "8px 0 12px"
   },
   retryBtn: {
-    background: "rgba(255, 255, 255, 0.1)",
-    border: "1px solid rgba(255, 255, 255, 0.2)",
-    color: "#ffffff",
-    borderRadius: "8px",
-    padding: "6px 14px",
-    fontSize: "12px",
+    background: "#ffffff",
+    border: "2px solid #ffffff",
+    color: "#000000",
+    padding: "8px 16px",
+    fontSize: "9px",
+    fontFamily: '"Press Start 2P", monospace',
     cursor: "pointer"
   }
 };
