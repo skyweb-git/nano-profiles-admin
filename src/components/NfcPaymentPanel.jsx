@@ -8,12 +8,7 @@ export function buildUpiLinks({ payeeUpiId, amount }) {
   const baseQuery = `pa=${upid}&am=${cleanAmount}&cu=INR`;
 
   return {
-    upiIntentUrl: `upi://pay?${baseQuery}`,
-    gpayUrl: `tez://upi/pay?${baseQuery}`,
-    phonepeUrl: `phonepe://pay?${baseQuery}`,
-    paytmUrl: `paytmmp://pay?${baseQuery}`,
-    bhimUrl: `upi://pay?${baseQuery}`,
-    qrPayload: `upi://pay?${baseQuery}`
+    upiIntentUrl: `upi://pay?${baseQuery}`
   };
 }
 
@@ -21,8 +16,6 @@ export default function NfcPaymentPanel({ tagCode, previewData, isInlinePreview 
   const [data, setData] = useState(previewData || null);
   const [loading, setLoading] = useState(!previewData && Boolean(tagCode));
   const [error, setError] = useState(null);
-  const [copiedUpi, setCopiedUpi] = useState(false);
-  const [showQr, setShowQr] = useState(false);
 
   useEffect(() => {
     if (previewData) {
@@ -70,13 +63,6 @@ export default function NfcPaymentPanel({ tagCode, previewData, isInlinePreview 
     ? { ...previewData, links: buildUpiLinks(previewData) }
     : data;
 
-  const handleCopyUpi = () => {
-    if (!activeData?.payeeUpiId) return;
-    navigator.clipboard.writeText(activeData.payeeUpiId);
-    setCopiedUpi(true);
-    setTimeout(() => setCopiedUpi(false), 2000);
-  };
-
   const handlePay = (url) => {
     const target = url || activeData?.links?.upiIntentUrl;
     if (target) {
@@ -114,41 +100,29 @@ export default function NfcPaymentPanel({ tagCode, previewData, isInlinePreview 
   const amt = Number(activeData?.amount || 0);
   const formattedAmt = amt.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
   const links = activeData?.links || (activeData ? buildUpiLinks(activeData) : {});
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=${encodeURIComponent(links.qrPayload || "")}`;
 
   return (
     <div style={isInlinePreview ? styles.inlineWrap : styles.pageWrap}>
       <div style={{ ...styles.card, ...(isInlinePreview ? styles.cardInline : {}) }}>
         {/* Top Header Pill */}
-        <div style={styles.headerRow}>
-          <div style={styles.verifiedPill}>
-            <span style={{ fontSize: "12px" }}>🛡️</span>
-            <span>Verified Payee</span>
+        {activeData?.tagCode && (
+          <div style={styles.headerRow}>
+            <div style={styles.tagPill}>
+              <span style={{ fontSize: "11px" }}>📶</span>
+              <span>{activeData.tagCode}</span>
+            </div>
           </div>
-          <div style={styles.tagPill}>
-            <span style={{ fontSize: "11px" }}>📶</span>
-            <span>{activeData?.tagCode || "TAP-TAG"}</span>
-          </div>
-        </div>
+        )}
 
         {/* Payee Info */}
         <div style={styles.payeeSection}>
           <h2 style={styles.payeeName}>{activeData?.payeeName || "Merchant Name"}</h2>
           {activeData?.title && <p style={styles.tagTitle}>{activeData.title}</p>}
-
-          <div style={styles.upiRow} onClick={handleCopyUpi} title="Click to copy UPI ID">
-            <span style={styles.upiLabel}>UPI:</span>
-            <span style={styles.upiId}>{activeData?.payeeUpiId || "payee@bank"}</span>
-            <button style={styles.copyBtn} type="button" aria-label="Copy UPI ID">
-              {copiedUpi ? "✓" : "📋"}
-            </button>
-          </div>
-          {copiedUpi && <div style={styles.copiedText}>Copied to clipboard!</div>}
         </div>
 
-        {/* Small Panel Amount Display */}
+        {/* Amount Display */}
         <div style={styles.amountBox}>
-          <span style={styles.amountBoxLabel}>Amount to Pay</span>
+          <span style={styles.amountBoxLabel}>Total Payable Amount</span>
           <div style={styles.amountBoxRow}>
             <span style={styles.amountRupee}>₹</span>
             <span style={styles.amountNumber}>{formattedAmt || "0"}</span>
@@ -165,63 +139,6 @@ export default function NfcPaymentPanel({ tagCode, previewData, isInlinePreview 
           <span>Pay ₹{formattedAmt} with UPI</span>
           <span style={{ fontSize: "18px" }}>↗</span>
         </button>
-
-        {/* 1-Tap App Selectors */}
-        <div style={styles.appsSection}>
-          <span style={styles.appsSectionTitle}>Or pay directly via app:</span>
-          <div style={styles.appsGrid}>
-            <button
-              type="button"
-              style={{ ...styles.appButton, borderColor: "#5f259f", color: "#a855f7" }}
-              onClick={() => handlePay(links.phonepeUrl)}
-            >
-              PhonePe
-            </button>
-            <button
-              type="button"
-              style={{ ...styles.appButton, borderColor: "#4285F4", color: "#60a5fa" }}
-              onClick={() => handlePay(links.gpayUrl)}
-            >
-              Google Pay
-            </button>
-            <button
-              type="button"
-              style={{ ...styles.appButton, borderColor: "#00BAF2", color: "#38bdf8" }}
-              onClick={() => handlePay(links.paytmUrl)}
-            >
-              Paytm
-            </button>
-            <button
-              type="button"
-              style={{ ...styles.appButton, borderColor: "#22c55e", color: "#4ade80" }}
-              onClick={() => handlePay(links.bhimUrl)}
-            >
-              BHIM / Any
-            </button>
-          </div>
-        </div>
-
-        {/* QR Code fallback */}
-        <div style={styles.qrSection}>
-          <button
-            type="button"
-            style={styles.qrToggleBtn}
-            onClick={() => setShowQr(!showQr)}
-          >
-            {showQr ? "Hide QR Code" : "Show UPI QR Code"}
-          </button>
-          {showQr && (
-            <div style={styles.qrCard}>
-              <img src={qrUrl} alt="UPI QR Code" style={styles.qrImg} />
-              <p style={styles.qrText}>Scan using any UPI app to pay</p>
-            </div>
-          )}
-        </div>
-
-        {/* Security badge */}
-        <div style={styles.securityRow}>
-          <span>🔒 NPCI Secure UPI Payment • Instant Confirmation</span>
-        </div>
       </div>
     </div>
   );
@@ -268,21 +185,9 @@ const styles = {
   headerRow: {
     width: "100%",
     display: "flex",
-    justifyContent: "space-between",
+    justifyContent: "center",
     alignItems: "center",
     marginBottom: "16px"
-  },
-  verifiedPill: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "5px",
-    background: "rgba(16, 185, 129, 0.15)",
-    border: "1px solid rgba(16, 185, 129, 0.35)",
-    borderRadius: "20px",
-    padding: "3px 9px",
-    fontSize: "11px",
-    fontWeight: 600,
-    color: "#34d399"
   },
   tagPill: {
     display: "inline-flex",
@@ -291,8 +196,8 @@ const styles = {
     background: "rgba(99, 102, 241, 0.15)",
     border: "1px solid rgba(99, 102, 241, 0.35)",
     borderRadius: "20px",
-    padding: "3px 9px",
-    fontSize: "11px",
+    padding: "4px 12px",
+    fontSize: "12px",
     fontWeight: 700,
     color: "#a5b4fc"
   },
@@ -302,57 +207,25 @@ const styles = {
     marginBottom: "18px"
   },
   payeeName: {
-    fontSize: "1.35rem",
+    fontSize: "1.45rem",
     fontWeight: 700,
     margin: "0 0 2px 0",
     color: "#ffffff",
     letterSpacing: "-0.2px"
   },
   tagTitle: {
-    fontSize: "12px",
+    fontSize: "13px",
     color: "#94a3b8",
-    margin: "0 0 6px 0"
-  },
-  upiRow: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "6px",
-    background: "rgba(30, 41, 59, 0.8)",
-    border: "1px solid rgba(255, 255, 255, 0.1)",
-    borderRadius: "8px",
-    padding: "4px 10px",
-    cursor: "pointer",
-    fontSize: "12px"
-  },
-  upiLabel: {
-    color: "#64748b",
-    fontWeight: 600
-  },
-  upiId: {
-    color: "#e2e8f0",
-    fontWeight: 600
-  },
-  copyBtn: {
-    background: "none",
-    border: "none",
-    color: "#94a3b8",
-    cursor: "pointer",
-    padding: 0,
-    fontSize: "12px"
-  },
-  copiedText: {
-    fontSize: "11px",
-    color: "#10b981",
-    marginTop: "4px"
+    margin: "0"
   },
   amountBox: {
     width: "100%",
     background: "linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%)",
     border: "1px solid rgba(99, 102, 241, 0.3)",
     borderRadius: "16px",
-    padding: "16px 12px",
+    padding: "18px 12px",
     textAlign: "center",
-    marginBottom: "16px",
+    marginBottom: "18px",
     boxSizing: "border-box"
   },
   amountBoxLabel: {
@@ -376,13 +249,13 @@ const styles = {
     color: "#818cf8"
   },
   amountNumber: {
-    fontSize: "2.4rem",
+    fontSize: "2.5rem",
     fontWeight: 800,
     color: "#ffffff",
     letterSpacing: "-1px"
   },
   amountNote: {
-    fontSize: "11px",
+    fontSize: "12px",
     color: "#94a3b8",
     marginTop: "6px",
     fontStyle: "italic"
@@ -397,83 +270,12 @@ const styles = {
     color: "#ffffff",
     border: "none",
     borderRadius: "14px",
-    padding: "14px 18px",
-    fontSize: "15px",
+    padding: "15px 18px",
+    fontSize: "16px",
     fontWeight: 700,
     cursor: "pointer",
     boxShadow: "0 6px 20px rgba(99, 102, 241, 0.4)",
-    marginBottom: "16px",
     boxSizing: "border-box"
-  },
-  appsSection: {
-    width: "100%",
-    marginBottom: "14px"
-  },
-  appsSectionTitle: {
-    display: "block",
-    textAlign: "center",
-    fontSize: "11px",
-    color: "#64748b",
-    marginBottom: "8px",
-    textTransform: "uppercase",
-    letterSpacing: "0.5px"
-  },
-  appsGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(2, 1fr)",
-    gap: "8px"
-  },
-  appButton: {
-    background: "rgba(30, 41, 59, 0.7)",
-    border: "1px solid",
-    borderRadius: "10px",
-    padding: "9px 8px",
-    fontSize: "12px",
-    fontWeight: 600,
-    cursor: "pointer",
-    textAlign: "center"
-  },
-  qrSection: {
-    width: "100%",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    marginBottom: "12px"
-  },
-  qrToggleBtn: {
-    background: "transparent",
-    border: "1px solid rgba(255, 255, 255, 0.15)",
-    borderRadius: "8px",
-    color: "#94a3b8",
-    padding: "6px 12px",
-    fontSize: "11px",
-    cursor: "pointer"
-  },
-  qrCard: {
-    marginTop: "10px",
-    background: "#ffffff",
-    padding: "10px",
-    borderRadius: "14px",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center"
-  },
-  qrImg: {
-    width: "160px",
-    height: "160px",
-    display: "block"
-  },
-  qrText: {
-    fontSize: "10px",
-    color: "#475569",
-    marginTop: "6px",
-    margin: "6px 0 0"
-  },
-  securityRow: {
-    fontSize: "10px",
-    color: "#64748b",
-    textAlign: "center",
-    marginTop: "4px"
   },
   spinner: {
     width: "36px",
