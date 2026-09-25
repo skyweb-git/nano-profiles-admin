@@ -1,0 +1,540 @@
+﻿/* Public NFC profile (/p/:token) â€” artist-style card, isolated from admin dashboard styles */
+
+.nfc-p-root {
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--nfc-p-bg, #0f172a);
+  color: var(--nfc-p-text, #fff);
+}
+
+.nfc-p-loading,
+.nfc-p-error {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+  background: #f8fafc;
+  color: #111827;
+}
+
+.nfc-p-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(0, 0, 0, 0.15);
+  border-top-color: #111827;
+  border-radius: 50%;
+  animation: nfc-p-spin 0.8s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes nfc-p-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.nfc-p-error h1 {
+  font-size: 1.25rem;
+  margin: 0 0 0.5rem;
+}
+
+.nfc-p-error p {
+  margin: 0;
+  opacity: 0.75;
+}
+
+.nfc-p-view {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 1rem;
+  box-sizing: border-box;
+}
+
+.nfc-p-card {
+  max-width: 420px;
+  width: 100%;
+  min-height: min(100vh, 900px);
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+
+/* â€”â€” Student layout: small square photo â†’ name (nickname) â†’ school|class row â†’ roll|blood row â†’ parents â€”â€” */
+
+.nfc-p-card--student {
+  padding-bottom: 1.5rem;
+}
+
+.nfc-p-student-photo-wrap {
+  width: min(7.25rem, 42vw);
+  aspect-ratio: 1 / 1;
+  height: auto;
+  margin: 1.1rem auto 0;
+  overflow: hidden;
+  background: #1e293b;
+  flex-shrink: 0;
+  border-radius: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+
+.nfc-p-student-photo-btn {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: inherit;
+  overflow: hidden;
+  cursor: zoom-in;
+  background: transparent;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nfc-p-student-photo-btn:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.85);
+  outline-offset: 3px;
+}
+
+.nfc-p-student-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  display: block;
+  pointer-events: none;
+}
+
+.nfc-p-photo-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right))
+    max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  box-sizing: border-box;
+  background: rgba(0, 0, 0, 0.92);
+  cursor: zoom-out;
+}
+
+.nfc-p-photo-lightbox-close {
+  position: absolute;
+  top: max(0.75rem, env(safe-area-inset-top));
+  right: max(0.75rem, env(safe-area-inset-right));
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.nfc-p-photo-lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.nfc-p-photo-lightbox-close svg {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.nfc-p-photo-lightbox-img {
+  max-width: min(96vw, 1100px);
+  max-height: min(90vh, 900px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 10px;
+  cursor: default;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+}
+
+.nfc-p-student-photo-fallback {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(1.85rem, 8vw, 2.35rem);
+  font-weight: 800;
+  color: rgba(248, 250, 252, 0.9);
+  background: linear-gradient(145deg, #0f172a, #334155);
+}
+
+.nfc-p-student-head {
+  padding: 1rem 1.5rem 1.1rem;
+  text-align: center;
+}
+
+.nfc-p-age-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0.55rem 1.5rem 1.05rem;
+  padding: 0 1.75rem 0 0;
+  box-sizing: border-box;
+}
+
+.nfc-p-age-top-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  opacity: 0.58;
+}
+
+.nfc-p-age-top-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.nfc-p-student-name {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: clamp(1.65rem, 6vw, 2.1rem);
+  font-weight: 800;
+  margin: 0;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.nfc-p-student-name-main {
+  display: block;
+}
+
+.nfc-p-student-name-nick {
+  display: block;
+  font-size: clamp(0.92rem, 3.6vw, 1.12rem);
+  font-weight: 600;
+  opacity: 0.88;
+  letter-spacing: 0;
+  line-height: 1.35;
+}
+
+.nfc-p-student-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem 1rem;
+  margin: 0.65rem 1.5rem 0;
+  padding: 0 1.75rem 0 0;
+  box-sizing: border-box;
+}
+
+.nfc-p-student-info-row--school {
+  margin-top: 0.75rem;
+}
+
+.nfc-p-student-info-row--school .nfc-p-student-info-left,
+.nfc-p-student-info-row--school .nfc-p-student-info-right {
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+.nfc-p-student-info-row--roll-blood {
+  margin-top: 1rem;
+}
+
+.nfc-p-student-info-row--roll-blood .nfc-p-student-info-left {
+  font-size: 0.88rem;
+  font-weight: 500;
+  opacity: 0.72;
+  line-height: 1.4;
+}
+
+.nfc-p-student-info-row--roll-blood .nfc-p-student-info-right {
+  font-size: 0.88rem;
+  font-weight: 500;
+  opacity: 0.72;
+  line-height: 1.4;
+  text-align: right;
+}
+
+.nfc-p-student-info-left {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.nfc-p-student-info-right {
+  flex-shrink: 0;
+  max-width: min(50%, 12rem);
+  text-align: right;
+}
+
+.nfc-p-blood-inline-val {
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.nfc-p-parents-box {
+  margin: 1rem 1.5rem 0;
+  padding: 1.15rem 1.15rem 1.2rem;
+  border-radius: 18px;
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.07) 0%, rgba(0, 0, 0, 0.2) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  text-align: left;
+}
+
+.nfc-p-parents-header {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.95rem;
+}
+
+.nfc-p-parents-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.nfc-p-parents-header-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  opacity: 0.85;
+}
+
+.nfc-p-parents-title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  opacity: 0.72;
+  margin: 0;
+  font-weight: 600;
+}
+
+.nfc-p-parents-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.nfc-p-parent-card {
+  position: relative;
+  margin: 0;
+  padding: 1rem 1rem 1.05rem;
+  padding-left: 1.05rem;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.nfc-p-parent-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 14px 0 0 14px;
+  opacity: 0.95;
+}
+
+.nfc-p-parent-card--father::before {
+  background: linear-gradient(180deg, #60a5fa, #2563eb);
+}
+
+.nfc-p-parent-card--mother::before {
+  background: linear-gradient(180deg, #c084fc, #9333ea);
+}
+
+.nfc-p-parent-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.nfc-p-parent-card-avatar {
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.nfc-p-parent-card--father .nfc-p-parent-card-avatar {
+  background: linear-gradient(145deg, #3b82f6, #1d4ed8);
+}
+
+.nfc-p-parent-card--mother .nfc-p-parent-card-avatar {
+  background: linear-gradient(145deg, #a855f7, #7e22ce);
+}
+
+.nfc-p-parent-card-identity {
+  min-width: 0;
+  flex: 1;
+}
+
+.nfc-p-parent-card-role {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 600;
+  opacity: 0.55;
+  margin: 0 0 0.35rem;
+  line-height: 1.2;
+}
+
+.nfc-p-parent-card-name {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+  word-break: break-word;
+}
+
+.nfc-p-parent-card-phone-wrap {
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.nfc-p-parent-card-phone-btn {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-sizing: border-box;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+}
+
+.nfc-p-parent-card-phone-btn:hover {
+  background: rgba(255, 255, 255, 0.11);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.nfc-p-parent-card-phone-btn:active {
+  transform: scale(0.99);
+}
+
+.nfc-p-parent-card-phone-btn:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.7);
+  outline-offset: 2px;
+}
+
+.nfc-p-parent-card-phone-glyph {
+  flex-shrink: 0;
+  width: 1.35rem;
+  height: 1.35rem;
+  opacity: 0.88;
+}
+
+.nfc-p-parent-card-phone-line {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  gap: 0.45rem 0.65rem;
+  min-width: 0;
+  flex: 1;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.nfc-p-parent-card-phone-text {
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+  line-height: 1.25;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.nfc-p-parent-card-phone-hint {
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.45;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.nfc-p-parent-card-phone-missing {
+  display: block;
+  padding: 0.5rem 0;
+  font-size: 0.82rem;
+  opacity: 0.45;
+  font-style: italic;
+}
+
+.nfc-p-student-address-box {
+  margin: 1rem 1.5rem 0;
+  padding: 1rem 1.15rem 1.1rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: left;
+}
+
+.nfc-p-student-address-title {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 600;
+  opacity: 0.62;
+  margin: 0 0 0.55rem;
+}
+
+.nfc-p-student-address-text {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  opacity: 0.92;
+  white-space: pre-line;
+  word-break: break-word;
+}
+

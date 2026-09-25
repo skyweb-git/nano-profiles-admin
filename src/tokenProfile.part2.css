@@ -1,0 +1,502 @@
+﻿/* Whole profile card flips: front = student, back = school */
+.nfc-p-profile-flip-scene {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  perspective: 1400px;
+  scroll-margin-top: 1rem;
+}
+
+.nfc-p-profile-flip-scene .nfc-p-card {
+  overflow: visible;
+}
+
+.nfc-p-profile-flip-inner {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.65s cubic-bezier(0.4, 0.2, 0.2, 1);
+}
+
+.nfc-p-profile-flip-inner--flipped {
+  transform: rotateY(180deg);
+}
+
+.nfc-p-profile-flip-face--front {
+  position: relative;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.nfc-p-profile-flip-face--back {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: rotateY(180deg);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overflow-anchor: none;
+}
+
+.nfc-p-card--school-back {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  box-sizing: border-box;
+  padding: 1.25rem 1.35rem 1.25rem;
+  text-align: left;
+}
+
+.nfc-p-profile-flip-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin: 1rem 0 0;
+  padding: 0.35rem 1.5rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: center;
+  transition: opacity 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nfc-p-profile-flip-cta:hover {
+  opacity: 0.9;
+}
+
+.nfc-p-profile-flip-cta:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.75);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.nfc-p-profile-flip-cta-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+  text-align: center;
+}
+
+.nfc-p-profile-flip-cta-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.nfc-p-profile-flip-cta-sub {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.5;
+}
+
+.nfc-p-profile-flip-back-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  width: 100%;
+  margin-top: 1.5rem;
+  padding: 1.25rem 0.5rem 0.25rem;
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: center;
+  transition: opacity 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nfc-p-profile-flip-back-cta:hover {
+  opacity: 0.88;
+}
+
+.nfc-p-profile-flip-back-cta:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.75);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.nfc-p-profile-flip-back-cta-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.nfc-p-profile-flip-back-cta-sub {
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.48;
+}
+
+.nfc-p-school-back-intro {
+  margin: 0.5rem 0 1.15rem;
+}
+
+.nfc-p-card--school-back:has(.nfc-p-student-address-box--back) .nfc-p-school-back-intro {
+  margin-top: 0;
+}
+
+.nfc-p-school-back-eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  opacity: 0.45;
+}
+
+.nfc-p-school-back-heading {
+  margin: 0 0 0.4rem;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+.nfc-p-school-back-sub {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  opacity: 0.55;
+  max-width: 22rem;
+}
+
+.nfc-p-school-panel {
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.03) 100%);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  padding: 0.35rem 0.85rem 0.5rem;
+}
+
+.nfc-p-school-detail-dl {
+  margin: 0;
+  padding: 0;
+}
+
+.nfc-p-school-detail-item {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.nfc-p-school-detail-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0.35rem;
+}
+
+.nfc-p-school-detail-item--stack {
+  align-items: flex-start;
+}
+
+.nfc-p-school-detail-icon-wrap {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid rgba(96, 165, 250, 0.22);
+  color: rgba(147, 197, 253, 0.95);
+}
+
+.nfc-p-school-detail-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.nfc-p-school-detail-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.nfc-p-school-detail-copy dt {
+  margin: 0 0 0.35rem;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.48;
+  font-weight: 700;
+}
+
+.nfc-p-school-detail-copy dd {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  word-break: break-word;
+}
+
+.nfc-p-school-detail-dd--multiline {
+  white-space: pre-wrap;
+  font-weight: 500;
+  opacity: 0.95;
+}
+
+.nfc-p-school-detail-link {
+  color: rgba(147, 197, 253, 0.98);
+  text-decoration: none;
+  font-weight: 600;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.nfc-p-school-detail-link:hover {
+  border-bottom-color: rgba(147, 197, 253, 0.55);
+}
+
+.nfc-p-student-address-back-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-bottom: 0.85rem;
+}
+
+.nfc-p-student-address-back-icon {
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: rgba(167, 139, 250, 0.12);
+  border: 1px solid rgba(167, 139, 250, 0.25);
+  color: rgba(196, 181, 253, 0.95);
+}
+
+.nfc-p-card--school-back .nfc-p-student-address-box--back {
+  margin: 0 0 1.35rem;
+  padding: 0 0.25rem 1.2rem;
+  border-radius: 0;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+}
+
+.nfc-p-card--school-back .nfc-p-student-address-box--back .nfc-p-student-address-title {
+  margin: 0;
+  text-align: center;
+}
+
+.nfc-p-student-address-text--back {
+  margin: 0 auto;
+  max-width: 22rem;
+  font-size: 0.96rem;
+  line-height: 1.75;
+  letter-spacing: 0.015em;
+  text-align: center;
+  opacity: 0.94;
+  white-space: pre-line;
+  word-break: break-word;
+}
+
+.nfc-p-section--tight {
+  padding-top: 1rem;
+}
+
+.nfc-p-cover {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 260px;
+  overflow: hidden;
+  background: #1e293b;
+}
+
+.nfc-p-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.nfc-p-cover-fallback {
+  width: 100%;
+  height: 100%;
+  min-height: 180px;
+  background: linear-gradient(135deg, #0f172a 0%, #334155 50%, #0ea5e9 100%);
+}
+
+.nfc-p-cover-fallback--artist {
+  background: linear-gradient(135deg, #1e1b4b 0%, #4c1d95 50%, #ec4899 100%);
+}
+
+.nfc-p-avatar-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: -64px;
+  padding: 0 1.5rem 0.75rem;
+  position: relative;
+  z-index: 1;
+}
+
+.nfc-p-avatar {
+  width: 120px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.nfc-p-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.nfc-p-avatar-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.75rem;
+  font-weight: 700;
+  color: rgba(248, 250, 252, 0.9);
+  background: radial-gradient(circle at 30% 0, rgba(129, 140, 248, 0.75), transparent 55%), #020617;
+}
+
+.nfc-p-avatar-text {
+  text-align: center;
+  margin-top: 0.75rem;
+}
+
+.nfc-p-name {
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin: 0 0 0.35rem;
+  line-height: 1.2;
+}
+
+.nfc-p-nickname {
+  margin: 0.25rem 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  opacity: 0.9;
+  font-style: italic;
+}
+
+.nfc-p-subtitle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 1.1rem;
+  margin-top: 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--nfc-p-glass-border, rgba(255, 255, 255, 0.22));
+  background: var(--nfc-p-glass-bg, rgba(255, 255, 255, 0.12));
+  backdrop-filter: blur(16px);
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.nfc-p-meta {
+  font-size: 0.9rem;
+  font-weight: 600;
+  opacity: 0.8;
+  margin: 1rem 1.5rem 0;
+  text-align: center;
+}
+
+.nfc-p-section {
+  padding: 1.25rem 1.5rem 0;
+}
+
+.nfc-p-section-title {
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  opacity: 0.7;
+  margin: 0 0 0.5rem;
+}
+
+.nfc-p-contact-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.nfc-p-contact-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.nfc-p-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.65;
+}
+
+.nfc-p-value {
+  font-size: 1rem;
+  font-weight: 500;
+  color: inherit;
+  text-decoration: none;
+}
+
+a.nfc-p-value:hover {
+  opacity: 0.9;
+  text-decoration: underline;
+}
+
+.nfc-p-bio {
+  font-size: 1rem;
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-line;
+  opacity: 0.95;
+}
+
+.nfc-p-links {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  padding: 0 1.5rem 2rem;
+}
+
+.nfc-p-link-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  margin: 0 auto;
+  text-decoration: none;
+  border: 1px solid currentColor;
+}
+
+.nfc-p-link-icon svg {
+  width: 22px;
+  height: 22px;
+}
