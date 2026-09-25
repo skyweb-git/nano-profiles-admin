@@ -1,4 +1,5 @@
-const API_URL = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin : "");
+const rawApiUrl = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://localhost:5000' : 'https://api.nanoprofiles.com');
+const API_URL = rawApiUrl.replace(/\/health\/?$/, '').replace(/\/+$/, '');
 let adminToken = "";
 
 export const themeOptions = [
@@ -55,6 +56,7 @@ async function request(path, options = {}) {
 
 export const adminApi = {
   getToken,
+  checkHealth: () => fetch(`${API_URL}/health`).then(res => res.json()),
   checkSession: () => request("/api/admin/session"),
   logout: async () => {
     setToken("");
