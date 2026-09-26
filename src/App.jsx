@@ -8,10 +8,19 @@ const initialEdit = {
   _id: "",
   name: "",
   username: "",
+  ownerEmail: "",
   title: "",
   bio: "",
   theme: "mint",
-  profileType: "general"
+  profileType: "general",
+  companyName: "",
+  companyWebsite: "",
+  foundingYear: "",
+  fundingStage: "",
+  teamSize: "",
+  pitchDeckPdf: "",
+  ctaLabel: "Book a Call",
+  ctaUrl: ""
 };
 
 const initialArtistEdit = {
@@ -31,7 +40,15 @@ const initialCreateProfile = {
   title: "",
   bio: "",
   theme: "mint",
-  profileType: "general"
+  profileType: "general",
+  companyName: "",
+  companyWebsite: "",
+  foundingYear: "",
+  fundingStage: "",
+  teamSize: "",
+  pitchDeckPdf: "",
+  ctaLabel: "Book a Call",
+  ctaUrl: ""
 };
 
 const initialCreateArtist = {
@@ -43,14 +60,6 @@ const initialCreateArtist = {
   isActive: true
 };
 
-const initialPaymentForm = {
-  tagCode: "",
-  payeeUpiId: "",
-  payeeName: "Artube",
-  amount: "250",
-  title: "",
-  note: ""
-};
 
 const initialSchoolForm = {
   name: "",
@@ -96,6 +105,7 @@ function App() {
   const [email, setEmail] = useState("skywebdevelopers123@gmail.com");
   const [otp, setOtp] = useState("");
   const [authed, setAuthed] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(Boolean(adminApi.getToken()));
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -135,24 +145,34 @@ function App() {
   const [availabilityConflicts, setAvailabilityConflicts] = useState({ username: null, email: null });
   const [availabilitySuggestions, setAvailabilitySuggestions] = useState([]);
 
-  const [paymentTags, setPaymentTags] = useState([]);
-  const [paymentStats, setPaymentStats] = useState({ totalCount: 0, activeCount: 0, totalScans: 0 });
-  const [creatingPayment, setCreatingPayment] = useState(initialPaymentForm);
-  const [selectedPaymentTag, setSelectedPaymentTag] = useState(null);
-  const [quickPaymentAmount, setQuickPaymentAmount] = useState("");
-  const [copiedPaymentTagCode, setCopiedPaymentTagCode] = useState("");
 
   const lastChecked = useRef({ username: "", email: "" });
   const lastSuggestionsUsername = useRef("");
 
   useEffect(() => {
     let cancelled = false;
+    const token = adminApi.getToken();
+    if (!token) {
+      setAuthed(false);
+      setCheckingSession(false);
+      return;
+    }
+    setCheckingSession(true);
     adminApi.checkSession()
       .then(() => {
         if (!cancelled) setAuthed(true);
       })
-      .catch(() => {
-        if (!cancelled) setAuthed(false);
+      .catch((err) => {
+        if (!cancelled) {
+          if (err?.status === 401 || !adminApi.getToken()) {
+            setAuthed(false);
+          } else {
+            setMessage(err.message || "Failed to verify session. Please check connection.");
+          }
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setCheckingSession(false);
       });
     return () => {
       cancelled = true;
@@ -208,9 +228,20 @@ function App() {
   const counts = useMemo(() => {
     const total = profiles.length;
     const restaurant = profiles.filter((p) => p.profileType === "restaurant").length;
-    const other = total - restaurant;
-    return { total, restaurant, other };
+    const founder = profiles.filter((p) => p.profileType === "founder").length;
+    const other = total - restaurant - founder;
+    return { total, restaurant, founder, other };
   }, [profiles]);
+
+  const displayedProfiles = useMemo(() => {
+    return profiles.filter((p) => {
+      const pType = (p.profileType || "general").toLowerCase();
+      if (activeSection === "restaurant") return pType === "restaurant";
+      if (activeSection === "founder") return pType === "founder";
+      if (activeSection === "general") return pType === "general";
+      return true;
+    });
+  }, [profiles, activeSection]);
 
   const selectedClassName = useMemo(() => {
     if (!viewClassId) return "";
@@ -233,37 +264,19 @@ function App() {
       activeSection === "schools" && search.trim()
         ? { search: search.trim() }
         : {};
-    const [profilesRes, artistsRes, profileStatsRes, globalStatsRes, schoolsRes, paymentTagsRes] =
+    const [profilesRes, artistsRes, profileStatsRes, globalStatsRes, schoolsRes] =
       await Promise.all([
-      adminApi.getProfiles({ search, type: typeFilter }),
+      adminApi.getProfiles({ search }),
       adminApi.getArtists(search),
       adminApi.getProfileStats(),
       adminApi.getGlobalStats(),
-      adminApi.getSchools(schoolsQuery),
-      adminApi.getPaymentTags(search).catch(() => ({ data: [], stats: { totalCount: 0, activeCount: 0, totalScans: 0 } }))
+      adminApi.getSchools(schoolsQuery)
     ]);
     setProfiles(profilesRes.data || []);
     setArtists(artistsRes.data || []);
     setProfileStats(profileStatsRes.data || { totalProfiles: 0, recentProfiles: [] });
     setGlobalStats(globalStatsRes.data || null);
     setSchools(schoolsRes.data || []);
-    const pTags = paymentTagsRes?.data || [];
-    setPaymentTags(pTags);
-    if (paymentTagsRes?.stats) setPaymentStats(paymentTagsRes.stats);
-    setSelectedPaymentTag((prev) => {
-      if (prev && prev._id) {
-        const found = pTags.find((t) => t._id === prev._id);
-        if (found) {
-          setQuickPaymentAmount(String(found.amount));
-          return found;
-        }
-      }
-      if (pTags.length > 0) {
-        setQuickPaymentAmount(String(pTags[0].amount));
-        return pTags[0];
-      }
-      return null;
-    });
   }
 
   function goToSection(section) {
@@ -291,11 +304,15 @@ function App() {
     }
     if (section === "general") setTypeFilter("general");
     else if (section === "restaurant") setTypeFilter("restaurant");
+    else if (section === "founder") setTypeFilter("founder");
     else setTypeFilter("all");
     
     setLastCreatedProfileUrl("");
     setSearch("");
-    setCreatingProfile({ ...initialCreateProfile, profileType: section === "restaurant" ? "restaurant" : "general" });
+    setCreatingProfile({
+      ...initialCreateProfile,
+      profileType: section === "restaurant" ? "restaurant" : section === "founder" ? "founder" : "general"
+    });
     setCreatingArtist(initialCreateArtist);
   }
 
@@ -638,8 +655,7 @@ function App() {
     setLoading(true);
     loadDashboard()
       .catch((err) => {
-        const text = String(err.message || "").toLowerCase();
-        if (text.includes("token") || text.includes("authorization") || text.includes("invalid")) {
+        if (err?.status === 401 || !adminApi.getToken()) {
           adminApi.logout();
           setAuthed(false);
           setMessage("Session expired. Please login again.");
@@ -709,7 +725,15 @@ function App() {
         title: editing.title,
         bio: editing.bio,
         theme: editing.theme,
-        profileType: editing.profileType
+        profileType: editing.profileType,
+        companyName: editing.companyName,
+        companyWebsite: editing.companyWebsite,
+        foundingYear: editing.foundingYear,
+        fundingStage: editing.fundingStage,
+        teamSize: editing.teamSize,
+        pitchDeckPdf: editing.pitchDeckPdf,
+        ctaLabel: editing.ctaLabel,
+        ctaUrl: editing.ctaUrl
       });
       setMessage("Profile updated successfully");
       await loadDashboard();
@@ -735,11 +759,14 @@ function App() {
       const username = res.data?.username;
       if (username) {
         const base = profileBaseUrlFromEnv();
-        const type = res.data?.profileType === "restaurant" ? "restaurant" : "link";
+        const type = res.data?.profileType === "restaurant" ? "restaurant" : res.data?.profileType === "founder" ? "founder" : "link";
         setLastCreatedProfileUrl(`${base}/${type}/${username}`);
       }
 
-      setCreatingProfile({ ...initialCreateProfile, profileType: activeSection === "restaurant" ? "restaurant" : "general" });
+      setCreatingProfile({
+        ...initialCreateProfile,
+        profileType: activeSection === "restaurant" ? "restaurant" : activeSection === "founder" ? "founder" : "general"
+      });
       await loadDashboard();
     } catch (err) {
       setMessage(err.message);
@@ -902,119 +929,11 @@ function App() {
     }
   }
 
-  async function onCreatePaymentTag(e) {
-    e.preventDefault();
-    if (!creatingPayment.tagCode.trim() || !creatingPayment.payeeUpiId.trim() || !creatingPayment.amount) {
-      setMessage("Tag Code, Payee UPI ID, and Amount are required.");
-      return;
-    }
-    setLoading(true);
-    setMessage("");
-    try {
-      const res = await adminApi.createPaymentTag({
-        tagCode: creatingPayment.tagCode.trim(),
-        payeeUpiId: creatingPayment.payeeUpiId.trim(),
-        payeeName: creatingPayment.payeeName.trim() || "Artube",
-        amount: Number(creatingPayment.amount),
-        title: creatingPayment.title.trim(),
-        note: creatingPayment.note.trim()
-      });
-      setCreatingPayment(initialPaymentForm);
-      setSelectedPaymentTag(res.data);
-      setQuickPaymentAmount(String(res.data.amount));
-      setMessage(`NFC Payment tag ${res.data.tagCode} created successfully!`);
-      await loadDashboard();
-    } catch (err) {
-      setMessage(err.message || "Failed to create payment tag");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function onQuickUpdatePaymentAmount(e) {
-    if (e) e.preventDefault();
-    if (!selectedPaymentTag) {
-      setMessage("Please select a payment tag first.");
-      return;
-    }
-    const amt = Number(quickPaymentAmount);
-    if (isNaN(amt) || amt <= 0) {
-      setMessage("Please enter a valid positive amount.");
-      return;
-    }
-    setLoading(true);
-    setMessage("");
-    try {
-      const res = await adminApi.updatePaymentTagAmount(selectedPaymentTag._id, amt);
-      setSelectedPaymentTag(res.data);
-      setMessage(res.message || `Amount for ${res.data.tagCode} updated to ₹${amt}!`);
-      await loadDashboard();
-    } catch (err) {
-      setMessage(err.message || "Failed to update amount");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function onTogglePaymentActive(tag) {
-    if (!tag?._id) return;
-    setLoading(true);
-    setMessage("");
-    try {
-      const res = await adminApi.updatePaymentTag(tag._id, { isActive: !tag.isActive });
-      if (selectedPaymentTag?._id === tag._id) {
-        setSelectedPaymentTag(res.data);
-      }
-      setMessage(`Tag ${tag.tagCode} is now ${res.data.isActive ? 'Active' : 'Inactive'}`);
-      await loadDashboard();
-    } catch (err) {
-      setMessage(err.message || "Failed to update status");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function onDeletePaymentTag(id, tagCode) {
-    if (!window.confirm(`Delete NFC payment tag "${tagCode}"? Physical tags tapping this code will stop working.`)) {
-      return;
-    }
-    setLoading(true);
-    setMessage("");
-    try {
-      await adminApi.deletePaymentTag(id);
-      if (selectedPaymentTag?._id === id) {
-        setSelectedPaymentTag(null);
-        setQuickPaymentAmount("");
-      }
-      setMessage(`Tag "${tagCode}" deleted successfully.`);
-      await loadDashboard();
-    } catch (err) {
-      setMessage(err.message || "Failed to delete payment tag");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function copyPaymentNfcUrl(tagCode) {
-    const url = `${profileBaseUrlFromEnv()}/pay/${tagCode}`;
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopiedPaymentTagCode(tagCode);
-      setTimeout(() => setCopiedPaymentTagCode(""), 2000);
-    } catch {
-      setMessage(`NFC URL: ${url}`);
-    }
-  }
-
   function logout() {
     adminApi.logout();
     setAuthed(false);
     setProfiles([]);
     setArtists([]);
-    setPaymentTags([]);
-    setSelectedPaymentTag(null);
-    setQuickPaymentAmount("");
-    setCreatingPayment(initialPaymentForm);
     setEditing(initialEdit);
     setEditingArtist(initialArtistEdit);
     setSchoolForm(initialSchoolForm);
@@ -1028,6 +947,15 @@ function App() {
     setProfileUrlCopied(false);
     setTableCopiedStudentId("");
     setMessage("Logged out");
+  }
+
+  if (checkingSession) {
+    return (
+      <div className="wrap" style={{ textAlign: "center", padding: "5rem 1rem" }}>
+        <h2>Restoring admin session...</h2>
+        <p style={{ opacity: 0.75, marginTop: "0.5rem" }}>Verifying your active login credentials, please wait.</p>
+      </div>
+    );
   }
 
   if (!authed) {
@@ -1081,28 +1009,28 @@ function App() {
 
       <div className="statsGrid">
         <div className="stat">
-          <small>Total Profiles (Filtered)</small>
+          <small>Total Profiles</small>
           <strong>{counts.total}</strong>
+        </div>
+        <div className="stat">
+          <small>Founder Profiles</small>
+          <strong>{counts.founder}</strong>
         </div>
         <div className="stat">
           <small>Restaurant Profiles</small>
           <strong>{counts.restaurant}</strong>
         </div>
         <div className="stat">
-          <small>Other Profiles</small>
+          <small>General Profiles</small>
           <strong>{counts.other}</strong>
-        </div>
-        <div className="stat">
-          <small>All Profiles (DB)</small>
-          <strong>{profileStats.totalProfiles || 0}</strong>
         </div>
         <div className="stat">
           <small>Total Artists</small>
           <strong>{artists.length}</strong>
         </div>
         <div className="stat">
-          <small>NFC Pay Tags</small>
-          <strong>{paymentTags.length}</strong>
+          <small>All Profiles (DB)</small>
+          <strong>{profileStats.totalProfiles || 0}</strong>
         </div>
       </div>
 
@@ -1133,7 +1061,7 @@ function App() {
           { id: "artist", label: "Artist" },
           { id: "general", label: "General" },
           { id: "restaurant", label: "Restaurant" },
-          { id: "payments", label: "NFC Payments" }
+          { id: "founder", label: "Founder" }
         ].map(({ id, label }) => (
           <button
             key={id}
@@ -1179,10 +1107,16 @@ function App() {
       </div>
       ) : null}
 
-      {activeSection === "general" || activeSection === "restaurant" ? (
+      {activeSection === "general" || activeSection === "restaurant" || activeSection === "founder" ? (
       <div className="grid2">
         <div className="card tableCard">
-          <h2>{activeSection === "restaurant" ? "Restaurant profiles" : "General profiles"}</h2>
+          <h2>
+            {activeSection === "restaurant"
+              ? "Restaurant profiles"
+              : activeSection === "founder"
+              ? "Founder profiles"
+              : "General profiles"}
+          </h2>
           {loading ? <p>Loading...</p> : null}
           <table>
             <thead>
@@ -1192,17 +1126,19 @@ function App() {
                 <th>Email</th>
                 <th>Type</th>
                 <th>Theme</th>
+                {activeSection === "founder" ? <th>Company</th> : null}
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {profiles.map((profile) => (
+              {displayedProfiles.map((profile) => (
                 <tr key={profile._id}>
                   <td>{profile.name || "-"}</td>
                   <td>{profile.username}</td>
                   <td>{profile.ownerEmail || "-"}</td>
                   <td>{profile.profileType || "general"}</td>
                   <td>{profile.theme || "mint"}</td>
+                  {activeSection === "founder" ? <td>{profile.companyName || "-"}</td> : null}
                   <td className="actions">
                     <button onClick={() => setEditing({ ...initialEdit, ...profile })}>Edit</button>
                     <button className="danger" onClick={() => onDeleteProfile(profile._id)}>
@@ -1211,9 +1147,11 @@ function App() {
                   </td>
                 </tr>
               ))}
-              {profiles.length === 0 && !loading ? (
+              {displayedProfiles.length === 0 && !loading ? (
                 <tr>
-                  <td colSpan={6}>No profiles found.</td>
+                  <td colSpan={activeSection === "founder" ? 7 : 6}>
+                    No {activeSection === "founder" ? "founder" : activeSection === "restaurant" ? "restaurant" : "general"} profiles found.
+                  </td>
                 </tr>
               ) : null}
             </tbody>
@@ -1222,7 +1160,15 @@ function App() {
         
         <div className="adminFormsColumn">
           <form className="card" onSubmit={onCreateProfile}>
-            <h2>Create {activeSection === "restaurant" ? "Restaurant" : "General"} Profile</h2>
+            <h2>
+              Create{" "}
+              {activeSection === "restaurant"
+                ? "Restaurant"
+                : activeSection === "founder"
+                ? "Founder"
+                : "General"}{" "}
+              Profile
+            </h2>
             <label>
               Username (mandatory)
               <input
@@ -1277,6 +1223,7 @@ function App() {
               <input
                 value={creatingProfile.title || ""}
                 onChange={(e) => setCreatingProfile((p) => ({ ...p, title: e.target.value }))}
+                placeholder={activeSection === "founder" ? "e.g. Founder & CEO" : "e.g. Software Engineer"}
               />
             </label>
             <label>
@@ -1287,12 +1234,88 @@ function App() {
                 rows={3}
               />
             </label>
-            {/* Availability error block removed in favor of field-specific errors */}
-            <button disabled={loading || !!(availabilityConflicts.username || availabilityConflicts.email)} type="submit" className="btnPrimary">
 
+            {activeSection === "founder" ? (
+              <>
+                <label>
+                  Company Name
+                  <input
+                    value={creatingProfile.companyName || ""}
+                    onChange={(e) => setCreatingProfile((p) => ({ ...p, companyName: e.target.value }))}
+                    placeholder="e.g. Acme AI"
+                  />
+                </label>
+                <label>
+                  Company Website
+                  <input
+                    type="url"
+                    value={creatingProfile.companyWebsite || ""}
+                    onChange={(e) => setCreatingProfile((p) => ({ ...p, companyWebsite: e.target.value }))}
+                    placeholder="https://example.com"
+                  />
+                </label>
+                <label>
+                  Founding Year
+                  <input
+                    value={creatingProfile.foundingYear || ""}
+                    onChange={(e) => setCreatingProfile((p) => ({ ...p, foundingYear: e.target.value }))}
+                    placeholder="e.g. 2024"
+                  />
+                </label>
+                <label>
+                  Funding Stage
+                  <select
+                    value={creatingProfile.fundingStage || "Bootstrapped"}
+                    onChange={(e) => setCreatingProfile((p) => ({ ...p, fundingStage: e.target.value }))}
+                  >
+                    <option value="Bootstrapped">Bootstrapped</option>
+                    <option value="Pre-seed">Pre-seed</option>
+                    <option value="Seed">Seed</option>
+                    <option value="Series A">Series A</option>
+                    <option value="Series B+">Series B+</option>
+                  </select>
+                </label>
+                <label>
+                  Team Size
+                  <input
+                    value={creatingProfile.teamSize || ""}
+                    onChange={(e) => setCreatingProfile((p) => ({ ...p, teamSize: e.target.value }))}
+                    placeholder="e.g. 1-10, 15+ employees"
+                  />
+                </label>
+                <label>
+                  Pitch Deck PDF URL
+                  <input
+                    type="url"
+                    value={creatingProfile.pitchDeckPdf || ""}
+                    onChange={(e) => setCreatingProfile((p) => ({ ...p, pitchDeckPdf: e.target.value }))}
+                    placeholder="https://.../deck.pdf"
+                  />
+                </label>
+                <label>
+                  Call to Action (CTA) Button Label
+                  <input
+                    value={creatingProfile.ctaLabel || ""}
+                    onChange={(e) => setCreatingProfile((p) => ({ ...p, ctaLabel: e.target.value }))}
+                    placeholder="Book a Call, Schedule Demo"
+                  />
+                </label>
+                <label>
+                  CTA Link / URL
+                  <input
+                    type="url"
+                    value={creatingProfile.ctaUrl || ""}
+                    onChange={(e) => setCreatingProfile((p) => ({ ...p, ctaUrl: e.target.value }))}
+                    placeholder="https://calendly.com/your-meeting"
+                  />
+                </label>
+              </>
+            ) : null}
+
+            <button disabled={loading || !!(availabilityConflicts.username || availabilityConflicts.email)} type="submit" className="btnPrimary">
               Create Profile
             </button>
-            {lastCreatedProfileUrl && (activeSection === "general" || activeSection === "restaurant") ? (
+            {lastCreatedProfileUrl && (activeSection === "general" || activeSection === "restaurant" || activeSection === "founder") ? (
               <div className="studentProfileUrlBox" style={{ marginTop: 20 }}>
                 <span className="studentProfileUrlLabel">Profile URL</span>
                 <div className="studentProfileUrlRow">
@@ -1350,8 +1373,86 @@ function App() {
               >
                 <option value="general">Other / General</option>
                 <option value="restaurant">Restaurant</option>
+                <option value="founder">Founder</option>
               </select>
             </label>
+            {editing.profileType === "founder" ? (
+              <>
+                <label>
+                  Company / Project Name
+                  <input
+                    value={editing.companyName || ""}
+                    onChange={(e) => setEditing((p) => ({ ...p, companyName: e.target.value }))}
+                    placeholder="e.g. Acme AI"
+                  />
+                </label>
+                <label>
+                  Company Website
+                  <input
+                    type="url"
+                    value={editing.companyWebsite || ""}
+                    onChange={(e) => setEditing((p) => ({ ...p, companyWebsite: e.target.value }))}
+                    placeholder="https://acme.com"
+                  />
+                </label>
+                <label>
+                  Founding Year
+                  <input
+                    value={editing.foundingYear || ""}
+                    onChange={(e) => setEditing((p) => ({ ...p, foundingYear: e.target.value }))}
+                    placeholder="e.g. 2024"
+                  />
+                </label>
+                <label>
+                  Funding Stage
+                  <select
+                    value={editing.fundingStage || ""}
+                    onChange={(e) => setEditing((p) => ({ ...p, fundingStage: e.target.value }))}
+                  >
+                    <option value="">Select funding stage</option>
+                    <option value="Bootstrapped">Bootstrapped</option>
+                    <option value="Pre-Seed">Pre-Seed</option>
+                    <option value="Seed">Seed</option>
+                    <option value="Series A">Series A</option>
+                    <option value="Series B+">Series B+</option>
+                  </select>
+                </label>
+                <label>
+                  Team Size
+                  <input
+                    value={editing.teamSize || ""}
+                    onChange={(e) => setEditing((p) => ({ ...p, teamSize: e.target.value }))}
+                    placeholder="e.g. 1-10, 15+ employees"
+                  />
+                </label>
+                <label>
+                  Pitch Deck PDF URL
+                  <input
+                    type="url"
+                    value={editing.pitchDeckPdf || ""}
+                    onChange={(e) => setEditing((p) => ({ ...p, pitchDeckPdf: e.target.value }))}
+                    placeholder="https://.../deck.pdf"
+                  />
+                </label>
+                <label>
+                  Call to Action (CTA) Button Label
+                  <input
+                    value={editing.ctaLabel || ""}
+                    onChange={(e) => setEditing((p) => ({ ...p, ctaLabel: e.target.value }))}
+                    placeholder="Book a Call, Schedule Demo"
+                  />
+                </label>
+                <label>
+                  CTA Link / URL
+                  <input
+                    type="url"
+                    value={editing.ctaUrl || ""}
+                    onChange={(e) => setEditing((p) => ({ ...p, ctaUrl: e.target.value }))}
+                    placeholder="https://calendly.com/your-meeting"
+                  />
+                </label>
+              </>
+            ) : null}
             <label>
               Theme
               <select
@@ -2093,325 +2194,7 @@ function App() {
       </div>
       ) : null}
 
-      {activeSection === "payments" ? (
-      <div className="paymentGrid">
-        {/* Left Column: Registered NFC Tags Table */}
-        <div className="card tableCard">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <div>
-              <h2 style={{ margin: 0 }}>NFC Payment Tags</h2>
-              <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#6b7280' }}>
-                Tap cards configured with <code>/pay/TAG_CODE</code> dynamically fetch price &amp; UPI ID.
-              </p>
-            </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <span className="stat" style={{ padding: '6px 12px' }}>
-                <small>Total Taps</small>
-                <strong style={{ fontSize: '15px' }}>{paymentStats.totalScans || 0}</strong>
-              </span>
-            </div>
-          </div>
-
-          <table>
-            <thead>
-              <tr>
-                <th>Tag Code</th>
-                <th>Payee Name</th>
-                <th>UPI ID</th>
-                <th>Amount (₹)</th>
-                <th>Taps</th>
-                <th>Status</th>
-                <th>NFC Link</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paymentTags.map((tag) => {
-                const isSelected = selectedPaymentTag?._id === tag._id;
-                return (
-                  <tr 
-                    key={tag._id} 
-                    style={{ background: isSelected ? '#f5f3ff' : undefined, transition: 'background 0.15s' }}
-                  >
-                    <td>
-                      <strong style={{ color: '#4338ca', letterSpacing: '0.5px' }}>{tag.tagCode}</strong>
-                      {tag.title ? <div style={{ fontSize: '11px', color: '#6b7280' }}>{tag.title}</div> : null}
-                    </td>
-                    <td>{tag.payeeName}</td>
-                    <td>
-                      <code style={{ fontSize: '12px', background: '#f3f4f6', padding: '2px 6px', borderRadius: '4px' }}>
-                        {tag.payeeUpiId}
-                      </code>
-                    </td>
-                    <td>
-                      <strong style={{ fontSize: '15px', color: '#047857' }}>₹{Number(tag.amount).toLocaleString('en-IN')}</strong>
-                    </td>
-                    <td>
-                      <span style={{ fontSize: '12px', fontWeight: 600, color: '#4b5563' }}>
-                        {tag.totalScans || 0}
-                      </span>
-                    </td>
-                    <td>
-                      <span 
-                        className={tag.isActive ? "badgeActive" : "badgeInactive"}
-                        onClick={() => onTogglePaymentActive(tag)}
-                        title="Click to toggle Active/Inactive"
-                      >
-                        {tag.isActive ? "● Active" : "○ Inactive"}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="nfcUrlBox">
-                        <button 
-                          type="button" 
-                          className="btnCopyPill"
-                          onClick={() => copyPaymentNfcUrl(tag.tagCode)}
-                          title="Copy NFC URL to write onto card"
-                        >
-                          {copiedPaymentTagCode === tag.tagCode ? "✓ Copied!" : "📋 Copy Link"}
-                        </button>
-                        <a 
-                          href={`${profileBaseUrlFromEnv()}/pay/${tag.tagCode}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={{ fontSize: '11px', color: '#4f46e5', textDecoration: 'none', fontWeight: 600 }}
-                          title="Test open tap-to-pay page"
-                        >
-                          ↗ Open
-                        </a>
-                      </div>
-                    </td>
-                    <td className="actions">
-                      <button 
-                        type="button"
-                        style={{
-                          background: isSelected ? '#4f46e5' : '#e0e7ff',
-                          color: isSelected ? '#ffffff' : '#3730a3',
-                          border: 'none',
-                          fontWeight: 600
-                        }}
-                        onClick={() => {
-                          setSelectedPaymentTag(tag);
-                          setQuickPaymentAmount(String(tag.amount));
-                        }}
-                      >
-                        {isSelected ? "Editing Price" : "Change Price"}
-                      </button>
-                      <button 
-                        type="button" 
-                        className="danger"
-                        onClick={() => onDeletePaymentTag(tag._id, tag.tagCode)}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-              {paymentTags.length === 0 ? (
-                <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>
-                    No NFC payment tags found. Create your first tag using the form on the right!
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Right Column: Quick Price Updater & Create Tag Form */}
-        <div className="adminFormsColumn">
-          {/* Quick Price Updater (As requested by user!) */}
-          <div className="card paymentQuickCard">
-            <h2>⚡ Quick Update Payment</h2>
-            {selectedPaymentTag ? (
-              <form onSubmit={onQuickUpdatePaymentAmount}>
-                <div className="selectedTagBanner">
-                  <div>
-                    <div style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Selected NFC Card</div>
-                    <div className="selectedTagCode">{selectedPaymentTag.tagCode} — {selectedPaymentTag.payeeName}</div>
-                  </div>
-                  <div className="selectedTagUpi">
-                    UPI: <strong>{selectedPaymentTag.payeeUpiId}</strong>
-                  </div>
-                </div>
-
-                <label style={{ display: 'block', fontWeight: 600, color: '#3730a3', marginBottom: '4px' }}>
-                  Amount (₹)
-                  <div className="amountInputWrapper">
-                    <span className="amountCurrencyPrefix">₹</span>
-                    <input
-                      type="number"
-                      className="amountLargeInput"
-                      value={quickPaymentAmount}
-                      onChange={(e) => setQuickPaymentAmount(e.target.value)}
-                      placeholder="e.g. 250"
-                      min="1"
-                      step="any"
-                      required
-                    />
-                  </div>
-                </label>
-
-                {/* Preset chips for instant price change */}
-                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px' }}>Quick Presets / Adjustments:</div>
-                <div className="presetChipsRow">
-                  {["100", "250", "500", "1000", "1500"].map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      className="presetChip"
-                      onClick={() => setQuickPaymentAmount(preset)}
-                    >
-                      ₹{preset}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    className="presetChip"
-                    style={{ background: '#e0e7ff', borderColor: '#c7d2fe', color: '#3730a3' }}
-                    onClick={() => {
-                      const cur = Number(quickPaymentAmount) || 0;
-                      setQuickPaymentAmount(String(cur + 50));
-                    }}
-                  >
-                    +₹50
-                  </button>
-                  <button
-                    type="button"
-                    className="presetChip"
-                    style={{ background: '#e0e7ff', borderColor: '#c7d2fe', color: '#3730a3' }}
-                    onClick={() => {
-                      const cur = Number(quickPaymentAmount) || 0;
-                      setQuickPaymentAmount(String(cur + 100));
-                    }}
-                  >
-                    +₹100
-                  </button>
-                </div>
-
-                <button
-                  type="submit"
-                  className="btnPaymentUpdate"
-                  disabled={loading}
-                >
-                  {loading ? "Updating..." : "UPDATE PAYMENT"}
-                </button>
-
-                <div style={{ marginTop: '12px', fontSize: '12px', color: '#6b7280', textAlign: 'center' }}>
-                  Next phone tap on NFC tag <strong>{selectedPaymentTag.tagCode}</strong> will immediately ask for ₹{quickPaymentAmount || selectedPaymentTag.amount}.
-                </div>
-
-                <div style={{ marginTop: '20px', borderTop: '1px dashed #cbd5e1', paddingTop: '16px' }}>
-                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#4338ca', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span>📱 Customer Tap Panel (Live Preview):</span>
-                    <a
-                      href={`${profileBaseUrlFromEnv()}/pay/${selectedPaymentTag.tagCode}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={{ fontSize: '12px', color: '#4f46e5', textDecoration: 'none', fontWeight: 600 }}
-                    >
-                      Open in New Tab ↗
-                    </a>
-                  </div>
-                  <NfcPaymentPanel
-                    isInlinePreview={true}
-                    previewData={{
-                      tagCode: selectedPaymentTag.tagCode,
-                      payeeName: selectedPaymentTag.payeeName,
-                      payeeUpiId: selectedPaymentTag.payeeUpiId,
-                      amount: quickPaymentAmount || selectedPaymentTag.amount,
-                      title: selectedPaymentTag.title,
-                      note: selectedPaymentTag.note
-                    }}
-                  />
-                </div>
-              </form>
-            ) : (
-              <p style={{ color: '#6b7280', fontSize: '13px' }}>
-                Select a tag from the table to quickly update its payment amount, or create a new tag below.
-              </p>
-            )}
-          </div>
-
-          {/* Create New Payment Tag Form */}
-          <form className="card" onSubmit={onCreatePaymentTag}>
-            <h2>➕ Create NFC Payment Tag</h2>
-            <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '-6px', marginBottom: '14px' }}>
-              Assign a unique tag code (e.g. ART001) that will be written onto your NFC tag.
-            </p>
-
-            <label>
-              NFC Tag Code (Mandatory)
-              <input
-                value={creatingPayment.tagCode}
-                onChange={(e) => setCreatingPayment((p) => ({ ...p, tagCode: e.target.value.toUpperCase() }))}
-                placeholder="e.g. ART001, COUNTER-1"
-                required
-              />
-            </label>
-
-            <label>
-              Payee UPI ID (Mandatory)
-              <input
-                value={creatingPayment.payeeUpiId}
-                onChange={(e) => setCreatingPayment((p) => ({ ...p, payeeUpiId: e.target.value }))}
-                placeholder="e.g. yourupi@bank, artube@okaxis"
-                required
-              />
-            </label>
-
-            <label>
-              Payee Display Name
-              <input
-                value={creatingPayment.payeeName}
-                onChange={(e) => setCreatingPayment((p) => ({ ...p, payeeName: e.target.value }))}
-                placeholder="e.g. Artube, Art Gallery"
-                required
-              />
-            </label>
-
-            <label>
-              Default Amount (₹)
-              <input
-                type="number"
-                min="1"
-                step="any"
-                value={creatingPayment.amount}
-                onChange={(e) => setCreatingPayment((p) => ({ ...p, amount: e.target.value }))}
-                placeholder="e.g. 250"
-                required
-              />
-            </label>
-
-            <label>
-              Item Title / Artwork Name (Optional)
-              <input
-                value={creatingPayment.title}
-                onChange={(e) => setCreatingPayment((p) => ({ ...p, title: e.target.value }))}
-                placeholder="e.g. Artube Masterpiece #1"
-              />
-            </label>
-
-            <label>
-              Transaction Note (Optional)
-              <input
-                value={creatingPayment.note}
-                onChange={(e) => setCreatingPayment((p) => ({ ...p, note: e.target.value }))}
-                placeholder="e.g. Payment for Artube NFC Card"
-              />
-            </label>
-
-            <button disabled={loading} type="submit">
-              {loading ? "Creating..." : "Create NFC Payment Tag"}
-            </button>
-            {message ? <p className="msg">{message}</p> : null}
-          </form>
-        </div>
-      </div>
-      ) : null}
-
-      {activeSection === "general" || activeSection === "restaurant" ? (
+      {activeSection === "general" || activeSection === "restaurant" || activeSection === "founder" ? (
       <div className="card">
         <h2>Recently Created (Top 5)</h2>
         <ul>

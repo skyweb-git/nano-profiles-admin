@@ -23,12 +23,28 @@ export const themeOptions = [
   "cyber"
 ];
 
+const TOKEN_KEY = "nano_admin_token";
+
 function getToken() {
+  if (typeof window !== "undefined") {
+    const stored = localStorage.getItem(TOKEN_KEY);
+    if (stored && stored !== "null" && stored !== "undefined") {
+      return stored;
+    }
+    return adminToken;
+  }
   return adminToken;
 }
 
 function setToken(token) {
   adminToken = token || "";
+  if (typeof window !== "undefined") {
+    if (token) {
+      localStorage.setItem(TOKEN_KEY, token);
+    } else {
+      localStorage.removeItem(TOKEN_KEY);
+    }
+  }
 }
 
 async function request(path, options = {}) {
@@ -49,7 +65,12 @@ async function request(path, options = {}) {
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data.message || `Request failed: ${response.status}`);
+    if (response.status === 401) {
+      setToken("");
+    }
+    const err = new Error(data.message || `Request failed: ${response.status}`);
+    err.status = response.status;
+    throw err;
   }
   return data;
 }
@@ -57,7 +78,13 @@ async function request(path, options = {}) {
 export const adminApi = {
   getToken,
   checkHealth: () => fetch(`${API_URL}/health`).then(res => res.json()),
-  checkSession: () => request("/api/admin/session"),
+  checkSession: async () => {
+    const data = await request("/api/admin/session");
+    if (data?.token) {
+      setToken(data.token);
+    }
+    return data;
+  },
   logout: async () => {
     setToken("");
     try {
@@ -147,7 +174,12 @@ export const adminApi = {
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      throw new Error(data.message || `Upload failed: ${response.status}`);
+      if (response.status === 401) {
+        setToken("");
+      }
+      const err = new Error(data.message || `Upload failed: ${response.status}`);
+      err.status = response.status;
+      throw err;
     }
     return data;
   },
@@ -164,7 +196,12 @@ export const adminApi = {
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      throw new Error(data.message || `Photo upload failed: ${response.status}`);
+      if (response.status === 401) {
+        setToken("");
+      }
+      const err = new Error(data.message || `Photo upload failed: ${response.status}`);
+      err.status = response.status;
+      throw err;
     }
     return data;
   },
